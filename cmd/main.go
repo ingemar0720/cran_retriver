@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ingemar0720/cran_retriver/fetch"
 	_ "github.com/lib/pq"
 )
 
@@ -29,6 +30,10 @@ func main() {
 		panic(err)
 	}
 	fmt.Println("Successfully created connection to database")
+
+	fetchService := fetch.NewFetchService("https://cran.r-project.org/src/contrib/", 50)
+	pkgs := fetchService.FetchPkgList()
+	fmt.Println(len(pkgs))
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World!!")
