@@ -1,0 +1,29 @@
+version: '3.6'
+services:
+  db:
+    image: postgres:12.4-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=mysecretpassword
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    restart: always
+    networks:
+      - cran_network
+  go:
+    depends_on:
+      - db
+      - migrate
+    image: golang:1.16.0
+    volumes:
+      - .:/go/src/cran_retriver
+    working_dir: /go/src/cran_retriver
+    command: go run cmd/main.go
+    networks:
+      - cran_network
+volumes:
+  db_data:
+networks:
+  cran_network:
+    name: cran_network
