@@ -22,6 +22,17 @@ services:
     command: go run cmd/main.go
     networks:
       - cran_network
+  migrate:
+    depends_on:
+      - db
+    image: migrate/migrate
+    volumes:
+      - .:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://user:mysecretpassword@db:5432/postgres?sslmode=disable", "up", "3"]
+    links:
+        - db
+    networks:
+      - cran_network
 volumes:
   db_data:
 networks:
