@@ -31,8 +31,7 @@ func (f *FetchService) FetchPkgList() []Package {
 		return []Package{}
 	}
 	pkgs := parsePkgResponse(resp.Body, f.pkgMap, f.numberOfPkgs)
-	downloadPackages(pkgs, f.baseURL)
-	return pkgs
+	return downloadPackages(pkgs, f.baseURL)
 }
 
 func parsePkgResponse(data io.Reader, pkgMap map[string]string, numberOfPkgs int) []Package {

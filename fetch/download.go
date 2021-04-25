@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type Package struct {
@@ -21,33 +22,51 @@ type Package struct {
 	maintainer      string
 }
 
-func downloadPackages(pkgs []Package, baseURL string) {
-	for i, p := range pkgs {
-		client := http.DefaultClient
-		request, err := http.NewRequest("GET", baseURL+p.name+"_"+p.version+".tar.gz", nil)
-		if err != nil {
-			fmt.Printf("compose request to download package %v fail, error %v", baseURL+p.name+"_"+p.version+".tar.gz", err)
-			continue
+func downloadPackages(pkgs []Package, baseURL string) []Package {
+	result := []Package{}
+	wg := sync.WaitGroup{}
+	pkgChans := make(chan Package, 10)
+	for _, p := range pkgs {
+		wg.Add(1)
+		go func(p Package) {
+			downloadPkgAsync(&p, baseURL)
+			pkgChans <- p
+			wg.Done()
+		}(p)
+	}
+	go func() {
+		for np := range pkgChans {
+			result = append(result, np)
 		}
-		request.Header.Add("Accept-Encoding", "gzip")
-		resp, err := client.Do(request)
-		if err != nil || resp.StatusCode != 200 {
-			fmt.Printf("download package %v fail, error %v, statusCode %v\n",
-				baseURL+p.name+"_"+p.version+".tar.gz", err, resp.StatusCode)
-			continue
-		}
-		defer resp.Body.Close()
-		reader, err := gzip.NewReader(resp.Body)
-		if err != nil {
-			fmt.Printf("create gzip reader fail, err: %v\n", err)
-			continue
-		}
-		defer reader.Close()
-		if err := parseCompressedFile(reader, &p); err != nil {
-			fmt.Printf("parseCompressedFile fail, error %v\n", err)
-			continue
-		}
-		pkgs[i] = p
+	}()
+	wg.Wait()
+	return result
+}
+
+func downloadPkgAsync(p *Package, baseURL string) {
+	client := http.DefaultClient
+	request, err := http.NewRequest("GET", baseURL+p.name+"_"+p.version+".tar.gz", nil)
+	if err != nil {
+		fmt.Printf("compose request to download package %v fail, error %v", baseURL+p.name+"_"+p.version+".tar.gz", err)
+		return
+	}
+	request.Header.Add("Accept-Encoding", "gzip")
+	resp, err := client.Do(request)
+	if err != nil || resp.StatusCode != 200 {
+		fmt.Printf("download package %v fail, error %v, statusCode %v\n",
+			baseURL+p.name+"_"+p.version+".tar.gz", err, resp.StatusCode)
+		return
+	}
+	defer resp.Body.Close()
+	reader, err := gzip.NewReader(resp.Body)
+	if err != nil {
+		fmt.Printf("create gzip reader fail, err: %v\n", err)
+		return
+	}
+	defer reader.Close()
+	if err := parseCompressedFile(reader, p); err != nil {
+		fmt.Printf("parseCompressedFile fail, error %v\n", err)
+		return
 	}
 }
 
