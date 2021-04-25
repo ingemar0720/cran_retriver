@@ -45,13 +45,13 @@ func parsePkgResponse(data io.Reader, pkgMap map[string]string, numberOfPkgs int
 		pkgline := scanner.Text()
 		if strings.Contains(pkgline, "Package: ") {
 			newPkg := Package{}
-			newPkg.name = strings.Split(pkgline, ": ")[1]
+			newPkg.Name = strings.Split(pkgline, ": ")[1]
 			for scanner.Scan() {
 				line := scanner.Text()
 				if strings.Contains(line, "Version: ") {
-					newPkg.version = strings.Split(line, ": ")[1]
+					newPkg.Version = strings.Split(line, ": ")[1]
 				} else if strings.Contains(line, "MD5sum: ") {
-					newPkg.md5sum = strings.Split(line, ": ")[1]
+					newPkg.MD5sum = strings.Split(line, ": ")[1]
 					break
 				}
 			}

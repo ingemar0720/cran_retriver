@@ -12,14 +12,14 @@ import (
 )
 
 type Package struct {
-	name            string
-	version         string
-	md5sum          string
-	datePublication string
-	title           string
-	description     string
-	author          string
-	maintainer      string
+	Name            string
+	Version         string
+	MD5sum          string
+	DatePublication string
+	Title           string
+	Description     string
+	Author          string
+	Maintainer      string
 }
 
 func downloadPackages(pkgs []Package, baseURL string) []Package {
@@ -45,16 +45,16 @@ func downloadPackages(pkgs []Package, baseURL string) []Package {
 
 func downloadPkgAsync(p *Package, baseURL string) {
 	client := http.DefaultClient
-	request, err := http.NewRequest("GET", baseURL+p.name+"_"+p.version+".tar.gz", nil)
+	request, err := http.NewRequest("GET", baseURL+p.Name+"_"+p.Version+".tar.gz", nil)
 	if err != nil {
-		fmt.Printf("compose request to download package %v fail, error %v", baseURL+p.name+"_"+p.version+".tar.gz", err)
+		fmt.Printf("compose request to download package %v fail, error %v", baseURL+p.Name+"_"+p.Version+".tar.gz", err)
 		return
 	}
 	request.Header.Add("Accept-Encoding", "gzip")
 	resp, err := client.Do(request)
 	if err != nil || resp.StatusCode != 200 {
 		fmt.Printf("download package %v fail, error %v, statusCode %v\n",
-			baseURL+p.name+"_"+p.version+".tar.gz", err, resp.StatusCode)
+			baseURL+p.Name+"_"+p.Version+".tar.gz", err, resp.StatusCode)
 		return
 	}
 	defer resp.Body.Close()
@@ -98,19 +98,19 @@ func parseDescription(reader io.Reader, p *Package) {
 	for scanner.Scan() {
 		switch line := scanner.Text(); {
 		case strings.Contains(line, "Package: "):
-			p.name = strings.TrimPrefix(line, "Package: ")
+			p.Name = strings.TrimPrefix(line, "Package: ")
 		case strings.Contains(line, "Version: "):
-			p.version = strings.TrimPrefix(line, "Version: ")
+			p.Version = strings.TrimPrefix(line, "Version: ")
 		case strings.Contains(line, "Date/Publication: "):
-			p.datePublication = strings.TrimPrefix(line, "Date/Publication: ")
+			p.DatePublication = strings.TrimPrefix(line, "Date/Publication: ")
 		case strings.Contains(line, "Title: "):
-			p.title = strings.TrimPrefix(line, "Title: ")
+			p.Title = strings.TrimPrefix(line, "Title: ")
 		case strings.Contains(line, "Description: "):
-			p.description = strings.TrimPrefix(line, "Description: ")
+			p.Description = strings.TrimPrefix(line, "Description: ")
 		case strings.Contains(line, "Author: "):
-			p.author = strings.TrimPrefix(line, "Authors: ")
+			p.Author = strings.TrimPrefix(line, "Author: ")
 		case strings.Contains(line, "Maintainer: "):
-			p.maintainer = strings.TrimPrefix(line, "Maintainers: ")
+			p.Maintainer = strings.TrimPrefix(line, "Maintainer: ")
 		}
 	}
 }
