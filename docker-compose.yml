@@ -27,8 +27,8 @@ services:
       - db
     image: migrate/migrate
     volumes:
-      - .:/migrations
-    command: ["-path", "/migrations", "-database",  "postgres://user:mysecretpassword@db:5432/postgres?sslmode=disable", "up", "3"]
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://user:mysecretpassword@db:5432/postgres?sslmode=disable", "up", "1"]
     links:
         - db
     networks:
