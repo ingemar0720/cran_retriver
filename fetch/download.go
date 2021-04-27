@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bufio"
 	"compress/gzip"
-	"database/sql"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,16 +16,16 @@ type Package struct {
 	Name            string
 	Version         string
 	MD5sum          string
-	DatePublication sql.NullString
-	Title           sql.NullString
-	Description     sql.NullString
+	DatePublication string
+	Title           string
+	Description     string
 	Author          Developer
 	Maintainer      Developer
 }
 
 type Developer struct {
 	Name  string
-	Email sql.NullString
+	Email string
 }
 
 func downloadPackages(pkgs []Package, baseURL string) []Package {
@@ -109,11 +108,11 @@ func parseDescription(reader io.Reader, p *Package) {
 		case strings.Contains(line, "Version: "):
 			p.Version = strings.TrimPrefix(line, "Version: ")
 		case strings.Contains(line, "Date/Publication: "):
-			p.DatePublication = strToNullStr(strings.TrimPrefix(line, "Date/Publication: "))
+			p.DatePublication = strings.TrimPrefix(line, "Date/Publication: ")
 		case strings.Contains(line, "Title: "):
-			p.Title = strToNullStr(strings.TrimPrefix(line, "Title: "))
+			p.Title = strings.TrimPrefix(line, "Title: ")
 		case strings.Contains(line, "Description: "):
-			p.Description = strToNullStr(strings.TrimPrefix(line, "Description: "))
+			p.Description = strings.TrimPrefix(line, "Description: ")
 		case strings.Contains(line, "Author: "):
 			p.Author = parseDeveloper(line, "Author: ")
 		case strings.Contains(line, "Maintainer: "):
@@ -130,16 +129,9 @@ func parseDeveloper(str string, tag string) Developer {
 	u, err := mail.ParseAddress(developerStr)
 	if err == nil {
 		developer.Name = u.Name
-		developer.Email = strToNullStr(u.Address)
+		developer.Email = u.Address
 	} else {
 		developer.Name = developerStr
 	}
 	return developer
-}
-
-func strToNullStr(str string) sql.NullString {
-	return sql.NullString{
-		String: str,
-		Valid:  true,
-	}
 }

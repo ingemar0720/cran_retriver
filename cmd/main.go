@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/ingemar0720/cran_retriver/database"
 	"github.com/ingemar0720/cran_retriver/fetch"
 	_ "github.com/lib/pq"
@@ -28,8 +30,25 @@ func main() {
 	pkgs := fetchService.FetchPkgList()
 	db.InsertPackages(pkgs)
 	fmt.Println("seed all packages information into DB")
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+	r := chi.NewRouter()
+	r.Get("/packages", func(w http.ResponseWriter, r *http.Request) {
+		packageName := r.URL.Query().Get("name")
+		if packageName != "" {
+			foundPkgs, err := db.QueryPackages(packageName)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			fmt.Println()
+			buf, err := json.Marshal(foundPkgs)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+			w.Write(buf)
+		}
+	})
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Hello World!!")
 	})
-	log.Fatal(http.ListenAndServe(":5000", nil))
+	log.Fatal(http.ListenAndServe(":5000", r))
 }

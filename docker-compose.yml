@@ -16,6 +16,8 @@ services:
       - db
       - migrate
     image: golang:1.16.0
+    ports:
+      - "5000:5000"
     volumes:
       - .:/go/src/cran_retriver
     working_dir: /go/src/cran_retriver

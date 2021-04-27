@@ -1,7 +1,9 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
 
 	"log"
 
@@ -18,6 +20,20 @@ const (
 
 type DB struct {
 	*sqlx.DB
+}
+
+type PackageModel struct {
+	ID              int            `json:"id" db:"id"`
+	Name            string         `json:"name" db:"name"`
+	Version         string         `json:"version" db:"version"`
+	MD5sum          string         `json:"md5sum" db:"md5sum"`
+	DatePublication sql.NullTime   `json:"date_publication" db:"date_publication"`
+	Title           sql.NullString `json:"title" db:"title"`
+	Description     sql.NullString `json:"description" db:"description"`
+	AuthorID        int            `json:"author_id" db:"author_id"`
+	MaintainerID    int            `json:"maintainer_id" db:"maintainer_id"`
+	CreatedAt       time.Time      `json:"created_at" db:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at" db:"updated_at"`
 }
 
 func New() (DB, error) {
@@ -71,4 +87,16 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 			np.Name, np.Version, np.MD5sum, np.DatePublication, np.Title, np.Description, authorIDList[i], maintainerIDList[i])
 	}
 	tx.Commit()
+}
+
+func (db DB) QueryPackages(name string) ([]PackageModel, error) {
+	packages := []PackageModel{}
+	fmt.Println("prepare to search package based on ", name)
+	err := db.DB.Select(&packages, `SELECT * FROM packages WHERE name LIKE $1`, "%"+name+"%")
+	if err != nil {
+		fmt.Println(err)
+		return []PackageModel{}, fmt.Errorf("search name from DB fail, error %v", err)
+	}
+	fmt.Printf("find %v of records has similar name as %v\n", len(packages), name)
+	return packages, nil
 }
