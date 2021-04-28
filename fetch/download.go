@@ -46,6 +46,7 @@ func downloadPackages(pkgs []Package, baseURL string) []Package {
 		}
 	}()
 	wg.Wait()
+	fmt.Printf("found %d package\n", len(result))
 	return result
 }
 
@@ -58,7 +59,12 @@ func downloadPkgAsync(p *Package, baseURL string) {
 	}
 	request.Header.Add("Accept-Encoding", "gzip")
 	resp, err := client.Do(request)
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil {
+		fmt.Printf("download package %v fail, error %v\n",
+			baseURL+p.Name+"_"+p.Version+".tar.gz", err)
+		return
+	}
+	if resp.StatusCode != 200 {
 		fmt.Printf("download package %v fail, error %v, statusCode %v\n",
 			baseURL+p.Name+"_"+p.Version+".tar.gz", err, resp.StatusCode)
 		return

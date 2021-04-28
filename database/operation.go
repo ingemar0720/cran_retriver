@@ -56,6 +56,7 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 									  RETURNING id`, p.Maintainer)
 		if err != nil {
 			log.Printf("insert maintainer into developers table fail, error %v", err)
+			tx.Rollback()
 			break
 		}
 		if rows.Next() {
@@ -69,6 +70,7 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 									RETURNING id`, p.Author)
 		if err != nil {
 			log.Printf("insert author into developers table fail, error %v", err)
+			tx.Rollback()
 			break
 		}
 		if rows.Next() {
@@ -81,10 +83,24 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 
 	tx = db.DB.MustBegin()
 	for i, np := range pkgs {
-		tx.MustExec(`INSERT INTO packages (name, version, md5sum, date_publication, title, description, author_id, maintainer_id)
-		               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		               ON CONFLICT (name, version) DO NOTHING`,
-			np.Name, np.Version, np.MD5sum, np.DatePublication, np.Title, np.Description, authorIDList[i], maintainerIDList[i])
+		pm := PackageModel{
+			Name:            np.Name,
+			Version:         np.Version,
+			MD5sum:          np.MD5sum,
+			DatePublication: strToNullTime(np.DatePublication),
+			Title:           strToNullString(np.Title),
+			Description:     strToNullString(np.Description),
+			AuthorID:        authorIDList[i],
+			MaintainerID:    maintainerIDList[i],
+		}
+		_, err := tx.NamedExec(`INSERT INTO packages (name, version, md5sum, date_publication, title, description, author_id, maintainer_id)
+		               VALUES (:name, :version, :md5sum, :date_publication, :title, :description, :author_id, :maintainer_id)
+		               ON CONFLICT (name, version) DO NOTHING`, pm)
+		if err != nil {
+			log.Printf("insert package into packages table fail, error %v, package %v", err, pm)
+			tx.Rollback()
+			break
+		}
 	}
 	tx.Commit()
 }
@@ -99,4 +115,22 @@ func (db DB) QueryPackages(name string) ([]PackageModel, error) {
 	}
 	fmt.Printf("find %v of records has similar name as %v\n", len(packages), name)
 	return packages, nil
+}
+
+func strToNullString(input string) sql.NullString {
+	if input == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: input, Valid: true}
+}
+
+func strToNullTime(t string) sql.NullTime {
+	if t == "" {
+		return sql.NullTime{Valid: false}
+	}
+	newTime, err := time.Parse("2006-01-02 15:04:05 UTC", t)
+	if err != nil {
+		return sql.NullTime{Valid: false}
+	}
+	return sql.NullTime{Time: newTime, Valid: true}
 }
