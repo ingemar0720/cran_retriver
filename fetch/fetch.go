@@ -25,7 +25,7 @@ func NewFetchService(url string, numberOfPkgs int) FetchService {
 
 func (f *FetchService) FetchPkgList() []Package {
 	client := http.DefaultClient
-	resp, err := client.Get(f.baseURL + "/PACKAGES")
+	resp, err := client.Get(f.baseURL + "PACKAGES")
 	if err != nil {
 		fmt.Printf("fetch package list fail, error: %v\n", err)
 		return []Package{}
@@ -43,7 +43,7 @@ func parsePkgResponse(data io.Reader, pkgMap map[string]string, numberOfPkgs int
 	scanner := bufio.NewScanner(data)
 	count := 0
 	for scanner.Scan() {
-		if numberOfPkgs > 0 && count > numberOfPkgs {
+		if numberOfPkgs > 0 && count >= numberOfPkgs {
 			break
 		}
 		pkgline := scanner.Text()

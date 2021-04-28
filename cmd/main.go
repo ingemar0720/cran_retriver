@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/ingemar0720/cran_retriver/database"
@@ -20,13 +22,16 @@ const (
 )
 
 func main() {
+	numbefOfPkgs, err := strconv.Atoi(os.Getenv("numbefOfPkgs"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	db, err := database.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Successfully created connection to database")
-
-	fetchService := fetch.NewFetchService("https://cran.r-project.org/src/contrib/", 50)
+	fetchService := fetch.NewFetchService("https://cran.r-project.org/src/contrib/", numbefOfPkgs)
 	pkgs := fetchService.FetchPkgList()
 	db.InsertPackages(pkgs)
 	fmt.Println("seed all packages information into DB")
@@ -39,7 +44,6 @@ func main() {
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 			}
-			fmt.Println()
 			buf, err := json.Marshal(foundPkgs)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)

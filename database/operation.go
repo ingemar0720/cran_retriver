@@ -55,7 +55,7 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 		                              ON CONFLICT (name) DO UPDATE SET email=EXCLUDED.email
 									  RETURNING id`, p.Maintainer)
 		if err != nil {
-			log.Printf("insert maintainer into developers table fail, error %v", err)
+			log.Printf("insert maintainer into developers table fail, error %v, maintainer %v", err, p.Maintainer)
 			tx.Rollback()
 			break
 		}
@@ -69,7 +69,7 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 								    ON CONFLICT (name) DO UPDATE SET email=EXCLUDED.email
 									RETURNING id`, p.Author)
 		if err != nil {
-			log.Printf("insert author into developers table fail, error %v", err)
+			log.Printf("insert author into developers table fail, error %v, author %v", err, p.Author)
 			tx.Rollback()
 			break
 		}

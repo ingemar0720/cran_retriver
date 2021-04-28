@@ -10,6 +10,8 @@ import (
 	"net/mail"
 	"strings"
 	"sync"
+
+	"github.com/pkg/errors"
 )
 
 type Package struct {
@@ -35,8 +37,9 @@ func downloadPackages(pkgs []Package, baseURL string) []Package {
 	for _, p := range pkgs {
 		wg.Add(1)
 		go func(p Package) {
-			downloadPkgAsync(&p, baseURL)
-			pkgChans <- p
+			if err := downloadPkgAsync(&p, baseURL); err == nil {
+				pkgChans <- p
+			}
 			wg.Done()
 		}(p)
 	}
@@ -50,36 +53,31 @@ func downloadPackages(pkgs []Package, baseURL string) []Package {
 	return result
 }
 
-func downloadPkgAsync(p *Package, baseURL string) {
+func downloadPkgAsync(p *Package, baseURL string) error {
 	client := http.DefaultClient
 	request, err := http.NewRequest("GET", baseURL+p.Name+"_"+p.Version+".tar.gz", nil)
 	if err != nil {
-		fmt.Printf("compose request to download package %v fail, error %v", baseURL+p.Name+"_"+p.Version+".tar.gz", err)
-		return
+		return errors.Wrap(err, fmt.Sprintf("compose request to download package %v fail, error %v", baseURL+p.Name+"_"+p.Version+".tar.gz", err))
 	}
 	request.Header.Add("Accept-Encoding", "gzip")
 	resp, err := client.Do(request)
 	if err != nil {
-		fmt.Printf("download package %v fail, error %v\n",
-			baseURL+p.Name+"_"+p.Version+".tar.gz", err)
-		return
+		return errors.Wrap(err, fmt.Sprintf("download package %v fail, error %v\n", baseURL+p.Name+"_"+p.Version+".tar.gz", err))
 	}
 	if resp.StatusCode != 200 {
-		fmt.Printf("download package %v fail, error %v, statusCode %v\n",
-			baseURL+p.Name+"_"+p.Version+".tar.gz", err, resp.StatusCode)
-		return
+		return errors.Wrap(err, fmt.Sprintf("download package %v fail, error %v, statusCode %v\n",
+			baseURL+p.Name+"_"+p.Version+".tar.gz", err, resp.StatusCode))
 	}
 	defer resp.Body.Close()
 	reader, err := gzip.NewReader(resp.Body)
 	if err != nil {
-		fmt.Printf("create gzip reader fail, err: %v\n", err)
-		return
+		return errors.Wrap(err, fmt.Sprintf("create gzip reader fail, err: %v\n", err))
 	}
 	defer reader.Close()
 	if err := parseCompressedFile(reader, p); err != nil {
-		fmt.Printf("parseCompressedFile fail, error %v\n", err)
-		return
+		return errors.Wrap(err, fmt.Sprintf("parseCompressedFile fail, error %v\n", err))
 	}
+	return nil
 }
 
 func parseCompressedFile(reader *gzip.Reader, p *Package) error {
