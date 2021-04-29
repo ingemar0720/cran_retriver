@@ -22,7 +22,7 @@ services:
       - .:/go/src/cran_retriver
     working_dir: /go/src/cran_retriver
     environment:
-      numbefOfPkgs: 1000
+      numbefOfPkgs: 60
     command: go run cmd/main.go
     networks:
       - cran_network

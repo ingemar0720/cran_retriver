@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"log"
-
 	"github.com/ingemar0720/cran_retriver/fetch"
 	"github.com/jmoiron/sqlx"
 )
@@ -44,20 +42,21 @@ func New() (DB, error) {
 	return DB{db}, nil
 }
 
-func (db DB) InsertPackages(pkgs []fetch.Package) {
+func (db DB) InsertPackages(pkgs []fetch.Package) (err error) {
+	var rows *sqlx.Rows
 	tx := db.DB.MustBegin()
 	authorIDList := make([]int, len(pkgs))
 	maintainerIDList := make([]int, len(pkgs))
 
 	for i, p := range pkgs {
 		var maintainer_id int
-		rows, err := tx.NamedQuery(`INSERT INTO developers (name, email) VALUES (:name, :email)
+		rows, err = tx.NamedQuery(`INSERT INTO developers (name, email) VALUES (:name, :email)
 		                              ON CONFLICT (name) DO UPDATE SET email=EXCLUDED.email
 									  RETURNING id`, p.Maintainer)
 		if err != nil {
-			log.Printf("insert maintainer into developers table fail, error %v, maintainer %v", err, p.Maintainer)
+			err = fmt.Errorf("insert maintainer into developers table fail, error %v, maintainer %v", err, p.Maintainer)
 			tx.Rollback()
-			break
+			return
 		}
 		if rows.Next() {
 			rows.Scan(&maintainer_id)
@@ -69,9 +68,9 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 								    ON CONFLICT (name) DO UPDATE SET email=EXCLUDED.email
 									RETURNING id`, p.Author)
 		if err != nil {
-			log.Printf("insert author into developers table fail, error %v, author %v", err, p.Author)
+			err = fmt.Errorf("insert author into developers table fail, error %v, author %v", err, p.Author)
 			tx.Rollback()
-			break
+			return
 		}
 		if rows.Next() {
 			rows.Scan(&author_id)
@@ -93,21 +92,23 @@ func (db DB) InsertPackages(pkgs []fetch.Package) {
 			AuthorID:        authorIDList[i],
 			MaintainerID:    maintainerIDList[i],
 		}
-		_, err := tx.NamedExec(`INSERT INTO packages (name, version, md5sum, date_publication, title, description, author_id, maintainer_id)
+		_, err = tx.NamedExec(`INSERT INTO packages (name, version, md5sum, date_publication, title, description, author_id, maintainer_id)
 		               VALUES (:name, :version, :md5sum, :date_publication, :title, :description, :author_id, :maintainer_id)
 		               ON CONFLICT (name, version) DO NOTHING`, pm)
+
 		if err != nil {
-			log.Printf("insert package into packages table fail, error %v, package %v", err, pm)
+			err = fmt.Errorf("insert package into packages table fail, error %v, package %v", err, pm)
 			tx.Rollback()
-			break
+			return
 		}
 	}
 	tx.Commit()
+	return
 }
 
 func (db DB) QueryPackages(name string) ([]PackageModel, error) {
 	packages := []PackageModel{}
-	fmt.Println("prepare to search package based on ", name)
+	fmt.Println("search package by name: ", name)
 	err := db.DB.Select(&packages, `SELECT * FROM packages WHERE name LIKE $1`, "%"+name+"%")
 	if err != nil {
 		fmt.Println(err)

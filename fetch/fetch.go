@@ -10,14 +10,12 @@ import (
 
 type FetchService struct {
 	baseURL      string
-	pkgMap       map[string]string
 	numberOfPkgs int
 }
 
 func NewFetchService(url string, numberOfPkgs int) FetchService {
 	f := FetchService{
 		baseURL:      url,
-		pkgMap:       make(map[string]string),
 		numberOfPkgs: numberOfPkgs,
 	}
 	return f
@@ -34,11 +32,11 @@ func (f *FetchService) FetchPkgList() []Package {
 		fmt.Printf("fetch package list fail, error: %v, status code %v\n", err, resp.StatusCode)
 		return []Package{}
 	}
-	pkgs := parsePkgResponse(resp.Body, f.pkgMap, f.numberOfPkgs)
+	pkgs := parsePkgResponse(resp.Body, f.numberOfPkgs)
 	return downloadPackages(pkgs, f.baseURL)
 }
 
-func parsePkgResponse(data io.Reader, pkgMap map[string]string, numberOfPkgs int) []Package {
+func parsePkgResponse(data io.Reader, numberOfPkgs int) []Package {
 	pkgs := []Package{}
 	scanner := bufio.NewScanner(data)
 	count := 0

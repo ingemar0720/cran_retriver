@@ -40,12 +40,12 @@ func downloadPackages(pkgs []Package, baseURL string) []Package {
 			if err := downloadPkgAsync(&p, baseURL); err == nil {
 				pkgChans <- p
 			}
-			wg.Done()
 		}(p)
 	}
 	go func() {
 		for np := range pkgChans {
 			result = append(result, np)
+			wg.Done()
 		}
 	}()
 	wg.Wait()
